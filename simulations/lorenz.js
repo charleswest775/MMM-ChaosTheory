@@ -30,9 +30,9 @@
 	const H = 0.004;          // integration step (Lorenz time)
 
 	class Lorenz {
-		// style "exposure": fixed view, only new segments drawn each frame (cheap: small damage);
-		// "rotate": the whole fading trail redrawn each frame as the view turns (costly on a Pi)
-		constructor ({ separation = 1e-5, lorenzStyle = "exposure" } = {}) {
+		// style "rotate": the fading trail redrawn each frame as the view turns;
+		// "exposure": fixed view, only new segments drawn each frame (about a third of the CPU on a Pi)
+		constructor ({ separation = 1e-5, lorenzStyle = "rotate" } = {}) {
 			this.style = lorenzStyle;
 			// start on the attractor (skip the transient) at a random point along it
 			const s0 = new Float64Array([1, 1, 20]);
@@ -78,34 +78,44 @@
 
 		draw (ctx, w, h) {
 			if (this.style === "exposure") return this.drawExposure(ctx, w, h);
-			ctx.globalCompositeOperation = "source-over";
-			ctx.fillStyle = "#000";
-			ctx.fillRect(0, 0, w, h);
-
-			// rotate about the attractor's vertical (z) axis, tilt a little towards the viewer
-			const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw), tilt = 0.35, ct = Math.cos(tilt), st = Math.sin(tilt);
-			const scale = Math.min(w, h) / 62, ox = w / 2, oy = h / 2;
-			const project = (x, y, z) => {
-				const u = x * cy - y * sy, v = x * sy + y * cy, zz = z - 25;
-				return [ox + u * scale, oy - (zz * ct - v * st) * scale];
-			};
-
-			ctx.globalCompositeOperation = "lighter";
-			ctx.lineWidth = 1.6;
-			const n = this.count, bands = 5;
+			// Rotating view. Project every trail point first, so that only the bounding box of
+			// this frame's and last frame's curves is cleared: on a Pi, cost grows with the area
+			// changed. Every 2nd recorded point is plenty at this scale.
+			const project = this.projector(w, h), n = this.count, every = 2;
+			const m = Math.floor((n - 1) / every) + 1;
+			if (!this.px || this.px.length < this.trails.length * m * 2) this.px = new Float32Array(this.trails.length * TRAIL * 2);
+			const px = this.px;
+			let x0 = w, y0 = h, x1 = 0, y1 = 0;
 			for (let i = 0; i < this.trails.length; i++) {
 				const tr = this.trails[i];
+				for (let j = 0; j < m; j++) {
+					const k = Math.min(n - 1, j * every), slot = ((this.head - n + k + TRAIL) % TRAIL) * 3;
+					const [x, y] = project(tr[slot], tr[slot + 1], tr[slot + 2]);
+					px[(i * m + j) * 2] = x; px[(i * m + j) * 2 + 1] = y;
+					if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+				}
+			}
+			const pad = 8, box = [Math.floor(x0 - pad), Math.floor(y0 - pad), Math.ceil(x1 + pad), Math.ceil(y1 + pad)];
+			const b = this.box || box;
+			const dirty = [Math.min(box[0], b[0]), Math.min(box[1], b[1]), Math.max(box[2], b[2]), Math.max(box[3], b[3])];
+			this.box = box;
+			ctx.globalCompositeOperation = "source-over";
+			ctx.fillStyle = "#000";
+			ctx.fillRect(dirty[0], dirty[1], dirty[2] - dirty[0], dirty[3] - dirty[1]);
+
+			// 1 px lines: twice the frame rate of 1.6 px on a Pi (16 vs 8 fps), keeping additive white
+			ctx.globalCompositeOperation = "lighter";
+			ctx.lineWidth = 1;
+			const bands = 5;
+			for (let i = 0; i < this.trails.length; i++) {
 				ctx.strokeStyle = COLORS[i];
 				for (let bnd = 0; bnd < bands; bnd++) {
-					const from = Math.floor((bnd * (n - 1)) / bands), to = Math.floor(((bnd + 1) * (n - 1)) / bands);
+					const from = Math.floor((bnd * (m - 1)) / bands), to = Math.floor(((bnd + 1) * (m - 1)) / bands);
 					if (to <= from) continue;
 					ctx.globalAlpha = 0.12 + 0.75 * ((bnd + 1) / bands) ** 2;
 					ctx.beginPath();
-					for (let k = from; k <= to; k++) {
-						const slot = ((this.head - n + k + TRAIL) % TRAIL) * 3;
-						const [px, py] = project(tr[slot], tr[slot + 1], tr[slot + 2]);
-						if (k === from) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-					}
+					ctx.moveTo(px[(i * m + from) * 2], px[(i * m + from) * 2 + 1]);
+					for (let j = from + 1; j <= to; j++) ctx.lineTo(px[(i * m + j) * 2], px[(i * m + j) * 2 + 1]);
 					ctx.stroke();
 				}
 				// bright head
