@@ -88,12 +88,17 @@
 				if (due > from) ctx.putImageData(this.img, d.x, d.y, from, 0, due - from, d.h);
 				return;
 			}
-			// sweep: restore the columns under the last marker, draw the new one
+			// Sweep. Chromium redraws the bounding box of everything changed in a frame, so the
+			// marker up on the diagram moves only twice a second; other frames touch just the
+			// cobweb's square.
 			const colOf = (r) => Math.round(((r - R_MIN) / (R_MAX - R_MIN)) * d.w - 0.5);
-			if (this.markerCol !== undefined) ctx.putImageData(this.img, d.x, d.y, this.markerCol - 2, 0, 5, d.h);
-			this.markerCol = colOf(this.r);
-			ctx.fillStyle = "rgba(255,255,255,0.8)";
-			ctx.fillRect(d.x + this.markerCol, d.y, 1, d.h);
+			if (this.markerCol === undefined || this.t - this.markerAt >= 0.5) {
+				if (this.markerCol !== undefined) ctx.putImageData(this.img, d.x, d.y, this.markerCol - 2, 0, 5, d.h);
+				this.markerCol = colOf(this.r);
+				this.markerAt = this.t;
+				ctx.fillStyle = "rgba(255,255,255,0.8)";
+				ctx.fillRect(d.x + this.markerCol, d.y, 1, d.h);
+			}
 			this.drawCobweb(ctx);
 		}
 
@@ -131,9 +136,9 @@
 
 		drawCobweb (ctx) {
 			const c = this.cobweb, r = this.r;
-			ctx.fillStyle = "#000";
-			ctx.fillRect(c.x - 2, c.y - 2, c.w + 4, c.h + 4);
 			const size = Math.min(c.w, c.h), ox = c.x + (c.w - size) / 2, oy = c.y;
+			ctx.fillStyle = "#000";
+			ctx.fillRect(ox - 2, oy - 2, size + 4, size + 4);
 			const X = (x) => ox + x * size, Y = (y) => oy + size - y * size;
 			ctx.lineWidth = 1;
 			ctx.strokeStyle = "#444";

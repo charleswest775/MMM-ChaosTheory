@@ -30,7 +30,10 @@
 	const H = 0.004;          // integration step (Lorenz time)
 
 	class Lorenz {
-		constructor ({ separation = 1e-5 } = {}) {
+		// style "exposure": fixed view, only new segments drawn each frame (cheap: small damage);
+		// "rotate": the whole fading trail redrawn each frame as the view turns (costly on a Pi)
+		constructor ({ separation = 1e-5, lorenzStyle = "exposure" } = {}) {
+			this.style = lorenzStyle;
 			// start on the attractor (skip the transient) at a random point along it
 			const s0 = new Float64Array([1, 1, 20]);
 			const warm = 20 + Math.random() * 20;
@@ -45,6 +48,8 @@
 			this.clock = new FixedClock(H / SPEED);
 			this.yaw = Math.random() * 2 * Math.PI;
 			this.stride = 0;
+			this.samples = 0;   // points recorded so far
+			this.drawnTo = 0;   // points already drawn (exposure style)
 		}
 
 		step (dt) {
@@ -56,8 +61,9 @@
 				for (let i = 0; i < this.states.length; i++) this.trails[i].set(this.states[i], this.head * 3);
 				this.head = (this.head + 1) % TRAIL;
 				this.count = Math.min(this.count + 1, TRAIL);
+				this.samples++;
 			});
-			this.yaw += dt * 0.12; // one turn every ~50 s
+			if (this.style === "rotate") this.yaw += dt * 0.12; // one turn every ~50 s
 		}
 
 		// largest distance between the released trajectories
@@ -71,6 +77,7 @@
 		}
 
 		draw (ctx, w, h) {
+			if (this.style === "exposure") return this.drawExposure(ctx, w, h);
 			ctx.globalCompositeOperation = "source-over";
 			ctx.fillStyle = "#000";
 			ctx.fillRect(0, 0, w, h);
@@ -109,6 +116,40 @@
 			}
 			ctx.globalAlpha = 1;
 			ctx.globalCompositeOperation = "source-over";
+		}
+
+		projector (w, h) {
+			const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw), tilt = 0.35, ct = Math.cos(tilt), st = Math.sin(tilt);
+			const scale = Math.min(w, h) / 62, ox = w / 2, oy = h / 2;
+			return (x, y, z) => {
+				const u = x * cy - y * sy, v = x * sy + y * cy, zz = z - 25;
+				return [ox + u * scale, oy - (zz * ct - v * st) * scale];
+			};
+		}
+
+		// Long exposure: add just the segments recorded since the last frame, additively, so
+		// paths the three trajectories share glow white and often-visited loops grow brighter.
+		drawExposure (ctx, w, h) {
+			const project = this.projector(w, h);
+			const from = Math.max(this.drawnTo - 1, this.samples - this.count), to = this.samples - 1;
+			if (to <= from) return;
+			ctx.globalCompositeOperation = "lighter";
+			ctx.globalAlpha = 0.55;
+			ctx.lineWidth = 1.4;
+			for (let i = 0; i < this.trails.length; i++) {
+				const tr = this.trails[i];
+				ctx.strokeStyle = COLORS[i];
+				ctx.beginPath();
+				for (let k = from; k <= to; k++) {
+					const slot = (k % TRAIL) * 3;
+					const [px, py] = project(tr[slot], tr[slot + 1], tr[slot + 2]);
+					if (k === from) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+				}
+				ctx.stroke();
+			}
+			ctx.globalAlpha = 1;
+			ctx.globalCompositeOperation = "source-over";
+			this.drawnTo = this.samples;
 		}
 
 		readout () {

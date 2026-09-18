@@ -16,14 +16,20 @@
 			const m = this.mode, s = (this.t * 3) % 1;
 			if (m === "none") return;
 			if (m === "tiny") { ctx.fillStyle = `hsl(${this.t * 50}, 80%, 50%)`; ctx.fillRect(0, 0, 4, 4); return; }
-			if (m === "clear" || m === "clear+path" || m === "clear+path+lighter") { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, w, h); }
+			if (m.startsWith("clear")) { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, w, h); }
 			if (m.includes("path")) {
 				ctx.globalCompositeOperation = m.includes("lighter") ? "lighter" : "source-over";
-				ctx.strokeStyle = "#4d9bff"; ctx.lineWidth = 1.6; ctx.globalAlpha = 0.8;
+				ctx.strokeStyle = "#4d9bff"; ctx.lineWidth = m.includes("path1") ? 1 : 1.6; ctx.globalAlpha = m.includes("opaque") ? 1 : 0.8;
 				ctx.beginPath();
 				this.pts.forEach(([x, y], i) => (i ? ctx.lineTo((x + s * 0.05) * w, y * h) : ctx.moveTo(x * w, y * h)));
 				ctx.stroke();
 				ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
+			}
+			if (m === "putimage") {
+				// what the logistic map's marker costs: put back 5 columns of a saved image
+				this.img = this.img || ctx.createImageData(w, h);
+				const c = Math.floor(this.t * 40) % (w - 5);
+				ctx.putImageData(this.img, 0, 0, c, 0, 5, h);
 			}
 			if (m === "segments") {
 				// what an accumulating trail costs: a few new segments per frame, no clear
