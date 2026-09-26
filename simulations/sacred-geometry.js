@@ -478,7 +478,7 @@
 		const { n, rnd } = g;
 		const per = Math.max(3, Math.round(rnd.range(100, 160) / n)), N = n * per;
 		const epi = rnd.chance(0.65), m = epi ? n + 1 : N + 1 - n;
-		g.layer(`${N} chords, j to ${epi ? m : `−${n - 1}`}·j`, { overlap: 0.85, intensity: 0.55 });
+		g.layer(`${N} points, j joined to ${epi ? m : `−${n - 1}`}·j`, { overlap: 0.85, intensity: 0.55 }); // (no line where m·j = j)
 		g.step(g.ring(c, n, 0));
 		const chord = (j) => {
 			const k = (m * j) % N;
