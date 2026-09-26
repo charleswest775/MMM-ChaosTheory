@@ -159,6 +159,7 @@ test("the same seed draws the same figure; different seeds, different figures", 
 });
 
 test("every figure fills the unit circle exactly, and has the symmetry it claims", () => {
+	let mirrored = 0;
 	for (const seed of seeds(120)) {
 		const f = SG.generate(seed), all = strokes(f);
 		const reach = Math.max(...all.map(SG.reach));
@@ -168,8 +169,21 @@ test("every figure fills the unit circle exactly, and has the symmetry it claims
 		for (let i = 0; i < points.length; i += 7) {
 			const [x, y] = points[i];
 			assert.ok(near([c * x - s * y, s * x + c * y], 0.004), `figure ${SG.seedName(seed)} (${f.n}-fold): (${x}, ${y}) turned has no match`);
-			if (f.mirror) assert.ok(near([-x, y], 0.004), `figure ${SG.seedName(seed)}: (${x}, ${y}) mirrored has no match`);
+			if (!f.chiral) assert.ok(near([-x, y], 0.004), `figure ${SG.seedName(seed)}: (${x}, ${y}) mirrored has no match`);
 		}
+		if (!f.chiral && !f.mirror) mirrored++;
+	}
+	assert.ok(mirrored > 0, "some figures drawn turning still come out mirror-symmetric");
+});
+
+test("a figure without mirror symmetry says so", () => {
+	// one with a whirl, turbine, pinwheel, leaning petals or one-way spirals: its mirror image differs
+	for (const seed of seeds(60)) {
+		const f = SG.generate(seed);
+		if (!f.chiral) continue;
+		const { points, near } = sampler(f);
+		const misses = points.filter((p, i) => i % 5 === 0 && !near([-p[0], p[1]], 0.004)).length;
+		assert.ok(misses > 0, `figure ${SG.seedName(seed)} is marked chiral but is its own mirror image`);
 	}
 });
 

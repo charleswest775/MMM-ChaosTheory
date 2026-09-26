@@ -39,7 +39,7 @@
 			const f = sim.figure, name = SG.seedName(f.seed);
 			const fig = document.createElement("figure");
 			fig.style.width = `${size}px`;
-			fig.innerHTML = `<figcaption><b>${name}</b> · ${f.n}-fold ${f.mirror ? "mirror" : "turning"} · ${f.palette.name}<br>` +
+			fig.innerHTML = `<figcaption><b>${name}</b> · ${f.n}-fold ${f.chiral ? "rotation" : "symmetry"}${f.mirror ? "" : ", drawn turning"} · ${f.palette.name}<br>` +
 				`${f.layers.filter((L) => !L.plain).map((L) => L.name).join(" · ")}</figcaption>`;
 			fig.prepend(canvas);
 			fig.onclick = () => window.open(`preview.html?simulations=sacred&sacredSeed=${name}&width=800&height=800&fps=12&cycleSeconds=600`);

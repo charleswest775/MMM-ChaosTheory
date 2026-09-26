@@ -181,13 +181,13 @@
 		}
 
 		buildInfo () {
-			const { n, mirror, layers, seed } = this.figure;
+			const { n, chiral, layers, seed } = this.figure;
 			const deg = 180 / n, angle = Number.isInteger(deg * 4) ? ` ${deg}°` : `(180°/${n})`;
 			const [side, note] = SIDES[n] || [`s = 2r sin${angle}`];
 			const value = side.endsWith("= r") ? "" : ` = ${(2 * Math.sin(Math.PI / n)).toFixed(4)} r`;
 			return {
 				title: "Sacred geometry",
-				subtitle: `${n}-fold ${mirror ? "symmetry" : "rotation"} · drawn from the centre out · figure ${SG.seedName(seed)}`,
+				subtitle: `${n}-fold ${chiral ? "rotation" : "symmetry"} · drawn from the centre out · figure ${SG.seedName(seed)}`,
 				equations: [
 					`the ${NAMES[n] || `regular ${n}-gon`}: &nbsp;${side}${value}`,
 					`<span class="chaos-note">${note ? `${note} ` : ""}${Sacred.constructibility(n)}</span>`,

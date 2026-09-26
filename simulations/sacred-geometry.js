@@ -255,9 +255,10 @@
 			this.circleAt = -1; // radius of the last circle about the centre
 		}
 
-		// a new layer: its steps follow each other, starting `overlap` of a step before the last ends
-		layer (name, { plain = false, intensity = 1, width = 1, overlap = 0 } = {}) {
-			this.L = { name, plain, intensity, width, overlap, steps: [], circles: 0, arcs: 0, lines: 0, curves: 0 };
+		// a new layer: its steps follow each other, starting `overlap` of a step before the last ends.
+		// chiral: its finished shape has no mirror symmetry (a whirl, a pinwheel, leaning petals)
+		layer (name, { plain = false, intensity = 1, width = 1, overlap = 0, chiral = false } = {}) {
+			this.L = { name, plain, intensity, width, overlap, chiral, steps: [], circles: 0, arcs: 0, lines: 0, curves: 0 };
 			this.layers.push(this.L);
 		}
 
@@ -443,7 +444,7 @@
 			const shrink = (f) => Math.hypot(1 - f + f * Math.cos(TAU / n), f * Math.sin(TAU / n));
 			let f = rnd.range(0.06, 0.14);
 			while (Math.log(0.04) / Math.log(shrink(f)) > 60) f += 0.02; // at most ~60 polygons
-			g.layer(`a whirl of ${POLYGONS[n]}s`, { overlap: 0.7, intensity: 0.75 });
+			g.layer(`a whirl of ${POLYGONS[n]}s`, { overlap: 0.7, intensity: 0.75, chiral: true });
 			shapes = [Array.from({ length: n }, (_, i) => P(c, t + (TAU * i) / n))];
 			while (shapes.length < 70 && Math.hypot(...shapes[shapes.length - 1][0]) > 0.04 * c) {
 				const s = shapes[shapes.length - 1];
@@ -451,7 +452,7 @@
 			}
 		} else {
 			const f = rnd.range(0.08, 0.14);
-			g.layer(`${n} whirling triangles`, { overlap: 0.7, intensity: 0.7 });
+			g.layer(`${n} whirling triangles`, { overlap: 0.7, intensity: 0.7, chiral: true });
 			shapes = [];
 			let tris = Array.from({ length: n }, (_, i) => [[0, 0], P(c, t + (TAU * i) / n), P(c, t + (TAU * (i + 1)) / n)]);
 			const size = (tri) => Math.hypot(tri[1][0] - tri[0][0], tri[1][1] - tri[0][1]);
@@ -512,7 +513,7 @@
 		const k = n >= 8 ? n : 2 * n, golden = rnd.chance(0.5), r0 = c * rnd.range(0.06, 0.1);
 		const turn = golden ? Math.log(c / r0) / (Math.log(PHI) / (PI / 2)) : rnd.range(0.35, 0.9) * TAU;
 		const t = g.offset(k);
-		g.layer(`${golden ? "golden spirals" : "spirals"}, ${g.mirror ? `${k} each way` : k}`, { intensity: 0.7 });
+		g.layer(`${golden ? "golden spirals" : "spirals"}, ${g.mirror ? `${k} each way` : k}`, { intensity: 0.7, chiral: !g.mirror });
 		g.step(g.ring(r0, k, t));
 		g.step(g.around(k, t, (a) => (g.mirror ? [1, -1] : [1]).map((dir) => g.curve(spiral(r0, c, dir * turn, a)))));
 		g.step(g.ring(c, k, t));
@@ -525,7 +526,7 @@
 		const ks = multiples(n, 5, 16);
 		const k = ks.length ? rnd.pick(ks) : n, rings = rnd.int(2, 3), r0 = c * rnd.range(0.14, 0.22), t = g.offset(k);
 		const lean = g.mirror ? 0 : rnd.range(0.12, 0.3) * (TAU / k);
-		g.layer(`a lotus, ${rings} rings of ${k} petals`, { overlap: 0.15 });
+		g.layer(`a lotus, ${rings} rings of ${k} petals`, { overlap: 0.15, chiral: lean !== 0 });
 		g.step(g.circle(0, 0, r0, t));
 		for (let j = 0; j < rings; j++) {
 			const tip = r0 + ((c - r0) * (j + 1)) / rings, w = (TAU / k) * rnd.range(1, 1.5), bulge = rnd.range(0.14, 0.3);
@@ -552,7 +553,7 @@
 		const { k, q, R } = rnd.pick(options.slice(0, 3)), t = g.offset(k);
 		if (!g.mirror && k >= 12 && rnd.chance(0.4)) {
 			// a turbine: from each point, the line that touches the inner circle, on one side only
-			g.layer(`a turbine of ${k} blades`);
+			g.layer(`a turbine of ${k} blades`, { chiral: true });
 			g.step(g.ring(R, k, t));
 			const turn = Math.acos(r / R);
 			g.step(g.around(k, t, (a) => g.segment(P(R, a), P(r, a + turn), false)));
@@ -576,7 +577,7 @@
 		const k = rnd.pick(ks), t = g.offset(k), bulge = rnd.range(0.12, 0.34);
 		const double = rnd.chance(0.45), h1 = double ? h / 1.35 : h;
 		const lean = g.mirror ? 0 : rnd.range(0.12, 0.3) * (TAU / k);
-		g.layer(double ? `a double lotus, ${2 * k} petals` : `a lotus of ${k} petals`);
+		g.layer(double ? `a double lotus, ${2 * k} petals` : `a lotus of ${k} petals`, { chiral: lean !== 0 });
 		g.step(g.around(k, t, (a) => g.petal(a, r, r + h1, TAU / k, bulge, lean)));
 		if (double) g.step(g.around(k, t + PI / k, (a) => g.petal(a, r, r + h, TAU / k, bulge, lean)));
 		if (rnd.chance(0.35)) g.step(g.around(k, t, (a) => g.petal(a, r, r + 0.6 * h1, (0.5 * TAU) / k, bulge, lean * 0.6)), { tone: 1 });
@@ -656,7 +657,7 @@
 		}
 		if (gap < 0.012) return null;
 		const t = g.offset(k);
-		g.layer(`${J} rings after Whorld`, { overlap: 0.55, intensity: 0.85 });
+		g.layer(`${J} rings after Whorld`, { overlap: 0.55, intensity: 0.85, chiral: pin !== 0 || twist !== 0 });
 		for (let j = 0; j < J; j++) {
 			const rj = r0 + j * gap;
 			const sides = whorldRing(k, rj, qj(j), pin, t + twist * rj, cEven, cOdd);
@@ -675,7 +676,7 @@
 		const { n, rnd } = g, rOut = Math.min(rMax, r * 1.9);
 		if (rOut - r < 0.07) return null;
 		const k = rnd.pick(multiples(n, 8, 48)), turn = (rnd.range(1, 2.2) * TAU) / k, t = g.offset(k);
-		g.layer(g.mirror ? `${k} + ${k} spirals` : `${k} spirals`, { intensity: 0.8 });
+		g.layer(g.mirror ? `${k} + ${k} spirals` : `${k} spirals`, { intensity: 0.8, chiral: !g.mirror });
 		g.step(g.around(k, t, (a) => (g.mirror ? [1, -1] : [1]).map((dir) => g.curve(spiral(r, rOut, dir * turn, a)))));
 		g.step(g.ring(rOut, k, t));
 		return rOut;
@@ -816,7 +817,8 @@
 		normalize(g.layers);
 		const count = (key) => g.layers.reduce((sum, L) => sum + L[key], 0);
 		return {
-			seed: seed >>> 0, n, mirror, palette, layers: g.layers,
+			// mirror: drawn symmetrically; chiral: the finished figure has no mirror symmetry
+			seed: seed >>> 0, n, mirror, chiral: g.layers.some((L) => L.chiral), palette, layers: g.layers,
 			counts: { circles: count("circles"), arcs: count("arcs"), lines: count("lines"), curves: count("curves") }
 		};
 	}
