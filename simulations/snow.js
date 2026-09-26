@@ -37,6 +37,9 @@
 		"The six arms match because they grow together, in the same changing air as the crystal falls; no two crystals fall through the same air. Real ones are rarely perfect; this one grows in a perfectly even field."
 	];
 
+	// each pixel's cell, by picture size: the same for every crystal, so made once
+	const maps = new Map();
+
 	const between = ([lo, hi], f) => lo + (hi - lo) * f;
 	const mix = (a, b, f) => a.map((v, i) => v + (b[i] - v) * f);
 	// the ice's colours by water, 0…255, packed as canvas pixels (little-endian RGBA)
@@ -95,7 +98,10 @@
 			this.P = P; this.d = d;
 			this.ox = Math.round((w - P) / 2); this.oy = Math.round((h - P) / 2);
 			// each pixel's cell in the model's wedge, or −1
+			const key = `${P},${d},${this.N}`;
+			if (maps.has(key)) { this.map = maps.get(key); this.img = null; this.lastDraw = -Infinity; return; }
 			const model = this.model, map = (this.map = new Int32Array(P * P).fill(-1));
+			maps.set(key, map);
 			const c = P / 2, s3 = Math.sqrt(3);
 			for (let py = 0; py < P; py++) {
 				for (let px = 0; px < P; px++) {

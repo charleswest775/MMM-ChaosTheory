@@ -125,9 +125,16 @@
 
 	// ---- the hat
 
-	// Hats from three rounds of substitution, recentred, within radius R (in the hat's units, a
-	// kite's long side = 1): [{ pts, label, reflected }]
+	// Hats from `levels` rounds of substitution, recentred, within radius R (in the hat's units, a
+	// kite's long side = 1): [{ pts, label, reflected }]. The same every time: kept once made.
+	const hatCache = new Map();
 	function hats (R, levels = 3) {
+		const key = `${R},${levels}`;
+		if (!hatCache.has(key)) hatCache.set(key, makeHats(R, levels));
+		return hatCache.get(key);
+	}
+
+	function makeHats (R, levels) {
 		const [H] = Hat.metatiles(levels);
 		const all = Hat.hats(H).map((h) => {
 			let cx = 0, cy = 0;
