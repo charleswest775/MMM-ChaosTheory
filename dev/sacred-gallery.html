@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!-- A wall of finished sacred-geometry figures, to see the range at a glance (and pick favourites):
+     node dev/serve.js, then open /dev/sacred-gallery.html. Click a figure to watch it being drawn
+     in the preview. Query options: ?count=12&size=300, ?seeds=3A7F21C0,1B2C3D4E to show those,
+     ?sacredFolds=6,12 or ?sacredPalettes=gold to narrow the choice. -->
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Sacred geometry gallery</title>
+	<style>
+		body { margin: 0; padding: 16px; background: #000; color: #999; font: 12px/1.35 sans-serif; }
+		#wall { display: flex; flex-wrap: wrap; gap: 18px; }
+		figure { margin: 0; cursor: pointer; }
+		figcaption { margin-top: 4px; }
+		figcaption b { color: #ddd; font-weight: normal; font-family: monospace; }
+		button { margin-bottom: 12px; }
+	</style>
+</head>
+<body>
+	<button id="more">more</button>
+	<div id="wall"></div>
+	<script src="../simulations/sacred-geometry.js"></script>
+	<script src="../simulations/sacred.js"></script>
+	<script>
+		const q = new URLSearchParams(location.search);
+		const size = Number(q.get("size")) || 300, count = Number(q.get("count")) || 12;
+		const options = { sacredFolds: q.get("sacredFolds") || [], sacredPalettes: q.get("sacredPalettes") || [] };
+		const Sacred = window.ChaosSimulations.sacred, SG = window.ChaosSacredGeometry;
+
+		function show (seed) {
+			const sim = new Sacred({ ...options, sacredSeed: seed ?? undefined });
+			const canvas = document.createElement("canvas");
+			canvas.width = canvas.height = size;
+			const ctx = canvas.getContext("2d", { alpha: false });
+			ctx.fillStyle = "#000";
+			ctx.fillRect(0, 0, size, size);
+			sim.step(1e6); // all of it at once
+			sim.draw(ctx, size, size);
+			const f = sim.figure, name = SG.seedName(f.seed);
+			const fig = document.createElement("figure");
+			fig.style.width = `${size}px`;
+			fig.innerHTML = `<figcaption><b>${name}</b> · ${f.n}-fold ${f.mirror ? "mirror" : "turning"} · ${f.palette.name}<br>` +
+				`${f.layers.filter((L) => !L.plain).map((L) => L.name).join(" · ")}</figcaption>`;
+			fig.prepend(canvas);
+			fig.onclick = () => window.open(`preview.html?simulations=sacred&sacredSeed=${name}&width=800&height=800&fps=12&cycleSeconds=600`);
+			document.getElementById("wall").append(fig);
+		}
+
+		const seeds = (q.get("seeds") || "").split(",").filter(Boolean);
+		if (seeds.length) seeds.forEach(show);
+		else for (let i = 0; i < count; i++) show();
+		document.getElementById("more").onclick = () => { for (let i = 0; i < count; i++) show(); };
+	</script>
+</body>
+</html>
