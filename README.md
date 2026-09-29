@@ -9,7 +9,7 @@ physically correct simulations, one at a time, each with its equations and live 
 |---|---|
 | `lorenz` | **The Lorenz attractor.** Three trajectories released 10⁻⁵ apart trace the butterfly as one white line, then split into red, green and blue, while the view turns slowly in 3D. |
 | `pendulums` | **Sensitive dependence.** Five double pendulums released 10⁻⁶ rad apart swing as one, then fan out, with the angles to 7 decimals and a log-scale plot of their spread (a straight line = exponential divergence). |
-| `basins` | **Fractal basins.** A pendulum over three magnets: each pixel is coloured by the magnet it ends over. Two bobs released 6×10⁻⁴ apart swing live and land on different magnets; then the view zooms ×10, ×100, ×1000 into the boundary where they started. |
+| `basins` | **Fractal basins.** A pendulum over three magnets: each pixel is coloured by the magnet it ends over. Two bobs released 3×10⁻⁴ apart swing live and land on different magnets; then the view zooms ×10, ×100, ×1000 into the boundary where they started. |
 | `logistic` | **The road to chaos.** The logistic map's bifurcation diagram paints itself, then a cobweb diagram sweeps r through period doubling into chaos, with the period and Lyapunov exponent. |
 | `icons` | **Symmetry in chaos.** One point hopping chaotically, millions of times, develops a symmetric picture (Field & Golubitsky). |
 | `threeBody` | **The three-body problem**, where Poincaré found chaos in 1889, as a long exposure, with a faint ghost of the same bodies started 10⁻⁶ away. In turn: Burrau's Pythagorean problem (masses 3, 4, 5 released from rest dance, then two pair off and the third is thrown out, for ever), Lagrange's triangle (unstable: the ghost's breaks up after four turns, the real one after eight, from rounding errors alone), and the figure-eight (stable: the ghost stays). |
@@ -17,6 +17,16 @@ physically correct simulations, one at a time, each with its equations and live 
 | `rule30` | **Rule 30.** A row of cells, each new row made from the last by one rule, drawn a row at a time from a single cell: regular on the left, random on the right. The readout keeps the centre column's latest bits and how often it has been 1. |
 
 A new simulation starts every `cycleSeconds`, and each time the module is shown again.
+
+Each is also a module of its own, to give it a page of its own or show just the ones you like:
+[MMM-LorenzAttractor](https://github.com/charleswest775/MMM-LorenzAttractor),
+[MMM-DoublePendulum](https://github.com/charleswest775/MMM-DoublePendulum),
+[MMM-FractalBasins](https://github.com/charleswest775/MMM-FractalBasins),
+[MMM-LogisticMap](https://github.com/charleswest775/MMM-LogisticMap),
+[MMM-SymmetricIcons](https://github.com/charleswest775/MMM-SymmetricIcons),
+[MMM-ThreeBody](https://github.com/charleswest775/MMM-ThreeBody),
+[MMM-ChaoticBilliards](https://github.com/charleswest775/MMM-ChaoticBilliards) and
+[MMM-Rule30](https://github.com/charleswest775/MMM-Rule30). This module keeps all eight in one.
 
 Built for a **Raspberry Pi 3 without GPU acceleration**: everything is drawn by the CPU, so the
 drawing is designed around what that costs (see [Performance](#performance)), and the animation
@@ -159,7 +169,8 @@ mirror's CPU on the Pi, a quarter of a second at a time.
 
 ## The family
 
-Pages of physics and mathematics for the same kind of mirror, each its own module, built the
+Besides the eight chaos simulations on their own (above), pages of physics and mathematics for
+the same kind of mirror, each its own module, built the
 same way (a frame-capped canvas that rests when the picture is still and stops when hidden) and
 able to take turns on a page:
 

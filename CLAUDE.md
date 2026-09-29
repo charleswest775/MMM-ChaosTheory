@@ -37,12 +37,20 @@ and checked out side by side in `~/dev/mirror-modules/`. Each has its own CLAUDE
 (module file, node_helper's stats panel, dev/preview.html) is the same in all of them: a fix to it
 here probably belongs in the siblings too.
 
+Later the same day each chaos simulation also got a repo of its own (MMM-LorenzAttractor,
+MMM-DoublePendulum, MMM-FractalBasins, MMM-LogisticMap, MMM-SymmetricIcons, MMM-ThreeBody,
+MMM-ChaoticBilliards, MMM-Rule30; default `cycleSeconds` 60), split the same way. This repo stays
+the all-in-one, so **a fix to a chaos simulation belongs both here and in its own repo**. (In
+the split-out icons, the caption's symmetry claim was corrected: with ω ≠ 0 the map has only the
+n-gon's rotations, not its reflections; fixed here too.)
+
 ## The mirror's rotation (config.js in the setup repo)
 
-chaos (60 s; one simulation per showing) → photos (20) → atom (45; MMM-Atom, atom and orbital in
-turn) → photos → fractal (30; MMM-FractalZoom and MMM-Chladni taking turns) → photos → sacred
-(30; MMM-SacredGeometry, MMM-Tilings, MMM-PlanetsDance taking turns) → photos → sky (30) →
-snow (30, MMM-SnowCrystal, since 2026-09-28) → photos, ~5½ minutes.
+each chaos module its own page (45 s; basins and threeBody 60), each followed by photos (20 s),
+then atom (45; MMM-Atom, atom and orbital in turn) → photos → fractal (30; MMM-FractalZoom and
+MMM-Chladni taking turns) → photos → sacred (30; MMM-SacredGeometry, MMM-Tilings,
+MMM-PlanetsDance taking turns) → photos → sky (30) → snow (30) → photos: ~13¼ minutes.
+MMM-ChaosTheory itself is not in the mirror's config since 2026-09-28.
 
 ## Performance findings on the Pi (measured, see README)
 

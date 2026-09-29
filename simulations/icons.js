@@ -1,8 +1,8 @@
 /* Symmetric chaotic "icons" (Field & Golubitsky, Symmetry in Chaos, 1992).
  * A single point hops about under
  *   z → (λ + α z z̄ + β Re(zⁿ) + i ω) z + γ z̄ⁿ⁻¹
- * which commutes with rotation by 2π/n and with reflection, so although each hop is
- * chaotic, the cloud of millions of visits is symmetric. The picture develops like a
+ * which commutes with rotation by 2π/n (and, when ω = 0, with reflection), so although each
+ * hop is chaotic, the cloud of millions of visits is symmetric. The picture develops like a
  * photograph: visits are counted per pixel under a fixed time budget each frame, and
  * the counts are turned into colour a couple of times a second.
  */
@@ -126,7 +126,7 @@
 		subtitle: "one point, hopping chaotically, millions of times",
 		equations: [
 			"z<sub>n+1</sub> = (λ + α z<sub>n</sub> z̄<sub>n</sub> + β Re(z<sub>n</sub><sup>n</sup>) + iω) z<sub>n</sub> + γ z̄<sub>n</sub><sup>n−1</sup>",
-			"<span class=\"chaos-note\">each hop is unpredictable, yet the map has the symmetry of a regular n-gon, so the places the point visits (brighter = more often) form a symmetric picture — after Field &amp; Golubitsky, Symmetry in Chaos</span>"
+			"<span class=\"chaos-note\">each hop is unpredictable, yet the map turns with a regular n-gon (and mirrors with it too when ω = 0), so the places the point visits (brighter = more often) form a symmetric picture — after Field &amp; Golubitsky, Symmetry in Chaos</span>"
 		]
 	};
 	Icons.ICONS = ICONS;
