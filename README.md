@@ -135,7 +135,9 @@ as CPU of the Electron processes plus the `cage` compositor over 60 s, in % of o
 | `threeBody`, over a 60 s showing (Burrau's problem and Lagrange's triangle) | 76 | 24 |
 | `billiards`, the same | 58 | 22 |
 | `rule30`, the same | 28 | 20 |
-| `standardMap`, `waterwheel`, `sandpile` | *not yet measured* | |
+| `standardMap`, over a 45 s showing (as MMM-StandardMap) | 31 | |
+| `waterwheel`, the same (as MMM-ChaoticWaterwheel) | 71 | |
+| `sandpile`, the same (as MMM-Sandpile) | 45 | |
 | `lorenzStyle: "exposure"` | 55 | 20+ |
 | `pendulumStyle: "exposure"` | 66 | 20+ |
 | *v0.1.0 single pendulum, 30 fps, for comparison* | *140 + cage* | |
@@ -155,9 +157,10 @@ What costs what, from micro-benchmarks on the Pi (`dev/bench.js`):
   picture rests, and is only polled twice a second. While MagicMirror fades the module out,
   nothing new is drawn.
 
-Of the three newest, `standardMap` adds a whole orbit (a full-canvas change) only three times a
-second and rests after 42 s; `waterwheel`'s frames take turns between the wheel's box and the
-butterfly's newest stretch; `sandpile` repaints the pile four times a second, and its toppling,
+Of the three newest (measured as modules of their own, the same code, over 45 s pages),
+`standardMap` adds a whole orbit (a full-canvas change) only three times a second and rests
+after 42 s; `waterwheel`'s frames take turns between the wheel's box and the butterfly's newest
+stretch, and it never rests; `sandpile` repaints the pile four times a second, and its toppling,
 timed on the Pi, is 3.5 s of CPU over its 42 s at 4 px cells (11.7 s at 3 px).
 
 The fractal basin maps are rendered ahead of time (`node tools/render-basins.js`, ~2 min on

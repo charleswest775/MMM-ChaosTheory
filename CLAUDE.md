@@ -24,8 +24,8 @@ animations for his hallway mirror, as one page in a rotation of pages.
   exactly Lorenz with b = 1; wheel box and butterfly on alternate frames), `sandpile` (single
   source, computed on one eighth by symmetry, grown in 42 s, 4 px cells), and the original
   `doublePendulum`. Measured on the Pi (900², 20 fps, over a 60 s showing): threeBody 76%,
-  billiards 58%, rule30 28%; the three newest not yet (sandpile's toppling alone: 3.5 s of CPU
-  over its 42 s, timed with node on the Pi).
+  billiards 58%, rule30 28%; the three newest as their own modules over a 45 s page:
+  standardMap 31%, waterwheel 71%, sandpile 45%.
 - `tests/` — `node --test`, no dependencies, physics checked against known results.
 - `dev/preview.html` runs the module in a desktop browser (serve with `node dev/serve.js`);
   `dev/bench.js` holds drawing micro-benchmarks for the Pi, `dev/cpu-trace.py` traces its CPU;
@@ -53,14 +53,16 @@ On 2026-09-29 five new modules were made the same way (same shell, own prefix), 
 to carry: MMM-StandardMap, MMM-ChaoticWaterwheel and MMM-Sandpile (chaos: also here, as
 `standardMap`, `waterwheel`, `sandpile`), MMM-DoubleSlit (quantum: one photon at a time, and
 watched) and MMM-Harmonograph (damped pendulums drawing). Each finishes its picture in 42 s to
-fit a 45 s page. Not yet in the mirror's config, not yet on the modules list, not yet measured
-in the mirror.
+fit a 45 s page. On the mirror since 2026-09-30 (measured: see each README); not yet on the
+modules list.
 ## The mirror's rotation (config.js in the setup repo)
 
-each chaos module its own page (45 s; basins and threeBody 60), each followed by photos (20 s),
-then atom (45; MMM-Atom, atom and orbital in turn) → photos → fractal (30; MMM-FractalZoom and
-MMM-Chladni taking turns) → photos → sacred (30; MMM-SacredGeometry, MMM-Tilings,
-MMM-PlanetsDance taking turns) → photos → sky (30) → snow (30) → photos: ~13¼ minutes.
+each chaos module its own page (45 s; basins and threeBody 60; since 2026-09-30 also standard
+map, waterwheel, sandpile), each followed by photos (20 s), then atom (45; MMM-Atom, atom and
+orbital in turn, taking turns with MMM-DoubleSlit) → photos → fractal (30; MMM-FractalZoom and
+MMM-Chladni taking turns) → photos → sacred (45; MMM-SacredGeometry, MMM-Tilings,
+MMM-PlanetsDance, MMM-Harmonograph taking turns) → photos → sky (30) → snow (30) → photos:
+~16¾ minutes.
 MMM-ChaosTheory itself is not in the mirror's config since 2026-09-28.
 
 ## Performance findings on the Pi (measured, see README)
