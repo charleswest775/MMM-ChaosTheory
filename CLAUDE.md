@@ -3,7 +3,7 @@
 Charles's own MagicMirror² module. Goal: beautiful, *physically correct* chaos-theory
 animations for his hallway mirror, as one page in a rotation of pages.
 
-## What exists (v1.0.0)
+## What exists (v1.1.0)
 
 - `MMM-ChaosTheory.js` — module shell: one canvas plus an HTML caption (equations + live
   readout, updated 2×/s). Cycles through `config.simulations` every `cycleSeconds` and on each
@@ -19,8 +19,13 @@ animations for his hallway mirror, as one page in a rotation of pages.
   and the stable figure-eight, each with a ghost started 10⁻⁶ away; adaptive Dormand–Prince at
   10⁻¹², drawn as a long exposure), `billiards` (ellipse vs Bunimovich stadium, three balls
   10⁻⁶ rad apart in each; one table per frame in turn), `rule30` (a row at a time, 5 rows a
-  second: each frame changes one strip), and the original `doublePendulum`. Measured on the Pi
-  (900², 20 fps, over a 60 s showing): threeBody 76%, billiards 58%, rule30 28%.
+  second: each frame changes one strip), `standardMap` (orbit by orbit, 3 a second, K = 0.5,
+  0.9716, 1.3, 2.4 in turn; rests at 42 s), `waterwheel` (Malkus's wheel, the continuous model,
+  exactly Lorenz with b = 1; wheel box and butterfly on alternate frames), `sandpile` (single
+  source, computed on one eighth by symmetry, grown in 42 s, 4 px cells), and the original
+  `doublePendulum`. Measured on the Pi (900², 20 fps, over a 60 s showing): threeBody 76%,
+  billiards 58%, rule30 28%; the three newest not yet (sandpile's toppling alone: 3.5 s of CPU
+  over its 42 s, timed with node on the Pi).
 - `tests/` — `node --test`, no dependencies, physics checked against known results.
 - `dev/preview.html` runs the module in a desktop browser (serve with `node dev/serve.js`);
   `dev/bench.js` holds drawing micro-benchmarks for the Pi, `dev/cpu-trace.py` traces its CPU;
@@ -44,6 +49,12 @@ the all-in-one, so **a fix to a chaos simulation belongs both here and in its ow
 the split-out icons, the caption's symmetry claim was corrected: with ω ≠ 0 the map has only the
 n-gon's rotations, not its reflections; fixed here too.)
 
+On 2026-09-29 five new modules were made the same way (same shell, own prefix), without history
+to carry: MMM-StandardMap, MMM-ChaoticWaterwheel and MMM-Sandpile (chaos: also here, as
+`standardMap`, `waterwheel`, `sandpile`), MMM-DoubleSlit (quantum: one photon at a time, and
+watched) and MMM-Harmonograph (damped pendulums drawing). Each finishes its picture in 42 s to
+fit a 45 s page. Not yet in the mirror's config, not yet on the modules list, not yet measured
+in the mirror.
 ## The mirror's rotation (config.js in the setup repo)
 
 each chaos module its own page (45 s; basins and threeBody 60), each followed by photos (20 s),

@@ -1,6 +1,6 @@
 # MMM-ChaosTheory
 
-A [MagicMirror²](https://magicmirror.builders/) module that shows chaos theory in motion: eight
+A [MagicMirror²](https://magicmirror.builders/) module that shows chaos theory in motion: eleven
 physically correct simulations, one at a time, each with its equations and live numbers underneath.
 
 ![Fractal basins: a pendulum over three magnets, each pixel coloured by the magnet it ends over](screenshot.png)
@@ -15,6 +15,9 @@ physically correct simulations, one at a time, each with its equations and live 
 | `threeBody` | **The three-body problem**, where Poincaré found chaos in 1889, as a long exposure, with a faint ghost of the same bodies started 10⁻⁶ away. In turn: Burrau's Pythagorean problem (masses 3, 4, 5 released from rest dance, then two pair off and the third is thrown out, for ever), Lagrange's triangle (unstable: the ghost's breaks up after four turns, the real one after eight, from rounding errors alone), and the figure-eight (stable: the ghost stays). |
 | `billiards` | **Chaotic billiards.** An elliptical table above Bunimovich's stadium, three balls in each leaving the same point 10⁻⁶ rad apart, as a long exposure: in the ellipse they stay together, one white path fenced in by its caustic; in the stadium they part within a few bounces and go everywhere. |
 | `rule30` | **Rule 30.** A row of cells, each new row made from the last by one rule, drawn a row at a time from a single cell: regular on the left, random on the right. The readout keeps the centre column's latest bits and how often it has been 1. |
+| `standardMap` | **The standard map.** Chirikov's kicked rotor, orbit by orbit as dots: closed curves and chains of islands where it is regular, grey dust where it is chaotic. Each showing a different kick strength, among them K = 0.9716, where the last barrier from side to side breaks. |
+| `waterwheel` | **The chaotic waterwheel.** Malkus's wheel of leaking cups under a spray, turning one way, then the other, never settling; its equations are exactly Lorenz's, and beside it the butterfly they trace, blue while it turns anticlockwise, orange clockwise. |
+| `sandpile` | **The sandpile.** Grains dropped on one cell, any cell with four toppling one onto each neighbour: avalanches of every size leave a fractal with the square's exact symmetry. |
 
 A new simulation starts every `cycleSeconds`, and each time the module is shown again.
 
@@ -25,8 +28,11 @@ Each is also a module of its own, to give it a page of its own or show just the 
 [MMM-LogisticMap](https://github.com/charleswest775/MMM-LogisticMap),
 [MMM-SymmetricIcons](https://github.com/charleswest775/MMM-SymmetricIcons),
 [MMM-ThreeBody](https://github.com/charleswest775/MMM-ThreeBody),
-[MMM-ChaoticBilliards](https://github.com/charleswest775/MMM-ChaoticBilliards) and
-[MMM-Rule30](https://github.com/charleswest775/MMM-Rule30). This module keeps all eight in one.
+[MMM-ChaoticBilliards](https://github.com/charleswest775/MMM-ChaoticBilliards),
+[MMM-Rule30](https://github.com/charleswest775/MMM-Rule30),
+[MMM-StandardMap](https://github.com/charleswest775/MMM-StandardMap),
+[MMM-ChaoticWaterwheel](https://github.com/charleswest775/MMM-ChaoticWaterwheel) and
+[MMM-Sandpile](https://github.com/charleswest775/MMM-Sandpile). This module keeps all eleven in one.
 
 Built for a **Raspberry Pi 3 without GPU acceleration**: everything is drawn by the CPU, so the
 drawing is designed around what that costs (see [Performance](#performance)), and the animation
@@ -60,7 +66,8 @@ that page's config. Their options are unchanged.
 	module: "MMM-ChaosTheory",
 	position: "middle_center",
 	config: {
-		simulations: ["lorenz", "pendulums", "basins", "logistic", "icons", "threeBody", "billiards", "rule30"],
+		simulations: ["lorenz", "pendulums", "basins", "logistic", "icons", "threeBody", "billiards", "rule30",
+			"standardMap", "waterwheel", "sandpile"],
 		cycleSeconds: 60,
 		width: 900,
 		height: 900,
@@ -71,7 +78,7 @@ that page's config. Their options are unchanged.
 
 | Option | Default | Description |
 |---|---|---|
-| `simulations` | all eight | Which to show, in order. Also available: `doublePendulum` (the original single pendulum) |
+| `simulations` | all eleven | Which to show, in order. Also available: `doublePendulum` (the original single pendulum) |
 | `cycleSeconds` | `60` | Move to the next simulation this often |
 | `width`, `height` | `900` | Canvas size in pixels |
 | `fps` | `20` | Frame-rate cap |
@@ -79,6 +86,8 @@ that page's config. Their options are unchanged.
 | `lorenzStyle` | `"rotate"` | `"exposure"`: fixed view, trails build up like a long-exposure photo. About a third of the CPU on a Pi |
 | `pendulumStyle` | `"live"` | `"exposure"`: only the bobs' light trails, building up like a long-exposure photo of LED-tipped pendulums. About half the CPU on a Pi |
 | `threeBodyScene` | taking turns | `threeBody`: always this one: `"pythagorean"`, `"lagrange"` or `"figure-eight"` |
+| `standardMapK` | taking turns | `standardMap`: always this kick strength, e.g. `0.971635` (otherwise 0.5, 0.9716, 1.3 and 2.4 in turn) |
+| `sandpileCell` | `4` | `sandpile`: pixels per cell. 3 for finer detail, at three times the toppling (see [Performance](#performance)) |
 | `turns` | `null` | Share a page with other modules, taking turns: see [Taking turns](#taking-turns) |
 | `statsPanel` | `false` | A line under the math showing what the mirror spends: fps, CPU of Electron and the compositor, a bar per core, temperature, and the simulation cycle. Sampled by the module's `node_helper` from `/proc`, only while the module is shown |
 | `debugStats` | `false` | Show achieved fps and per-frame timings in the corner of the screen |
@@ -126,6 +135,7 @@ as CPU of the Electron processes plus the `cage` compositor over 60 s, in % of o
 | `threeBody`, over a 60 s showing (Burrau's problem and Lagrange's triangle) | 76 | 24 |
 | `billiards`, the same | 58 | 22 |
 | `rule30`, the same | 28 | 20 |
+| `standardMap`, `waterwheel`, `sandpile` | *not yet measured* | |
 | `lorenzStyle: "exposure"` | 55 | 20+ |
 | `pendulumStyle: "exposure"` | 66 | 20+ |
 | *v0.1.0 single pendulum, 30 fps, for comparison* | *140 + cage* | |
@@ -144,6 +154,11 @@ What costs what, from micro-benchmarks on the Pi (`dev/bench.js`):
 - The frame loop sleeps with `setTimeout` until a frame is due. A simulation showing a finished
   picture rests, and is only polled twice a second. While MagicMirror fades the module out,
   nothing new is drawn.
+
+Of the three newest, `standardMap` adds a whole orbit (a full-canvas change) only three times a
+second and rests after 42 s; `waterwheel`'s frames take turns between the wheel's box and the
+butterfly's newest stretch; `sandpile` repaints the pile four times a second, and its toppling,
+timed on the Pi, is 3.5 s of CPU over its 42 s at 4 px cells (11.7 s at 3 px).
 
 The fractal basin maps are rendered ahead of time (`node tools/render-basins.js`, ~2 min on
 a Mac): at ~3.5 ms per pixel, a Pi 3 would need 47 minutes of CPU for one.
@@ -169,17 +184,19 @@ mirror's CPU on the Pi, a quarter of a second at a time.
 
 ## The family
 
-Besides the eight chaos simulations on their own (above), pages of physics and mathematics for
+Besides the eleven chaos simulations on their own (above), pages of physics and mathematics for
 the same kind of mirror, each its own module, built the
 same way (a frame-capped canvas that rests when the picture is still and stops when hidden) and
 able to take turns on a page:
 
 - [MMM-Atom](https://github.com/charleswest775/MMM-Atom): a Bohr-style atom, element by element, and hydrogen's quantum orbitals
+- [MMM-DoubleSlit](https://github.com/charleswest775/MMM-DoubleSlit): the double slit one photon at a time, and watched
 - [MMM-FractalZoom](https://github.com/charleswest775/MMM-FractalZoom): an infinite zoom into the Mandelbrot set and Julia sets
 - [MMM-Chladni](https://github.com/charleswest775/MMM-Chladni): sand on a vibrating plate finds its nodal lines
 - [MMM-SacredGeometry](https://github.com/charleswest775/MMM-SacredGeometry): a new compass-and-straightedge figure each time
 - [MMM-Tilings](https://github.com/charleswest775/MMM-Tilings): Penrose, hyperbolic and hat tilings, laid tile by tile
 - [MMM-PlanetsDance](https://github.com/charleswest775/MMM-PlanetsDance): real orbits from today, drawn as figures
+- [MMM-Harmonograph](https://github.com/charleswest775/MMM-Harmonograph): pendulums drawing, a new figure each time
 - [MMM-SnowCrystal](https://github.com/charleswest775/MMM-SnowCrystal): a snow crystal grown live
 - [MMM-NightSky](https://github.com/charleswest775/MMM-NightSky): the sky over the mirror, tonight
 - [MMM-PhotoDeck](https://github.com/charleswest775/MMM-PhotoDeck): your photos, one at a time, crossfading
