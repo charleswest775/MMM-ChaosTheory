@@ -5,25 +5,24 @@
  *
  * Dhar (1990) showed that the order in which cells topple makes no difference: however it is
  * done, the pile ends the same, and so does how often each cell toppled. So grains can be added
- * a frame's worth at a time and toppled together, and the picture after n grains is exactly the
- * pile of n grains dropped one by one. It follows too that the pile has the square's symmetry
- * exactly (turn it or reflect it and it's the same pile), so only an eighth of it is computed:
- * the cells x ≥ y ≥ 0 from the middle, each giving to its neighbours' mirror images as well.
+ * a batch at a time and toppled together, and the pile after n grains is exactly the pile of n
+ * grains dropped one by one. It follows too that the pile has the square's symmetry exactly
+ * (turn it or reflect it and it's the same pile), so only an eighth of it is computed: the
+ * cells x ≥ y ≥ 0 from the middle, each giving to its neighbours' mirror images as well.
  *
- * Grains are added at a steady rate for 42 s, until the pile is a little short of the canvas's
- * edge, so no grain is ever lost over it; then it rests.
- *
- * Drawn for the Pi: the pile is kept as an image a pixel a cell, scaled up onto the canvas four
- * times a second. The toppling grows as the square of the grains: on the Pi (node 22), a 900 px
- * pile of 4 px cells (78,000 grains) takes 4 s of toppling over its 42 s; of 3 px cells (138,000),
- * 12.6 s, most of a core by the end.
+ * The pattern only shows at a cell a pixel, and that takes more toppling than a Pi 3 can do in
+ * a page's time: the toppling grows as the square of the grains, and the 1,250,000 grains here
+ * topple 27 billion times (under a minute on a Mac, a quarter of an hour on the Pi). So the
+ * growth is computed ahead of time, exactly, with the Pile below (tools/render-sandpile.js) and
+ * stored in assets/sandpile.bin: the pile four times a second for 42 s, grains dropped at a
+ * steady rate, an eighth of each pile, two bits a cell. The page plays it back: four times a
+ * second the next pile is unpacked into the canvas's pixels and put there in one go; then it rests.
  */
 (function (root) {
-	const CELL = 4;              // px per cell (config sandpileCell)
-	const SECONDS = 42;          // to grow to full size, then rest (a 45 s page)
-	const UPDATES = 4;           // canvas changes a second
-	const DENSITY = 2.125;       // grains per cell covered, near enough, to size the pile
-	const COLOURS = [[0, 0, 0], [245, 190, 80], [40, 170, 185], [28, 44, 110]]; // 0 to 3 grains
+	const GRAINS = 1250000;      // dropped in all
+	const SECONDS = 42;          // to drop them, then rest (a 45 s page)
+	const UPDATES = 4;           // piles a second
+	const COLOURS = [[0, 0, 0], [255, 210, 120], [205, 62, 130], [46, 34, 120]]; // 0 to 3 grains
 
 	// A pile on the eighth x ≥ y ≥ 0 of a square grid of half-width `half` cells, grains added at
 	// (0, 0). Cells at x = half are the edge: grains that reach them are lost.
@@ -130,73 +129,88 @@
 		}
 	}
 
+	// the stored growth, fetched once and kept: the module starts a new pile each time it's shown
+	let stored = null;
+
 	class Sandpile {
-		constructor ({ sandpileCell = CELL } = {}) {
-			this.cell = sandpileCell;
+		constructor ({ file = (f) => f, growth = null } = {}) {
 			this.t = 0;
-			this.lastUpdate = -1;
+			this.shown = 0; // piles shown so far
+			this.growth = growth;
+			if (!growth) Sandpile.load(file).then((g) => { this.growth = g; }, () => {});
 		}
 
-		layout (w, h) {
-			if (this.w === w && this.h === h) return;
-			this.w = w; this.h = h;
-			const half = Math.floor(Math.min(w, h) / this.cell / 2);
-			this.pile = new Pile(half + 2);
-			this.full = Math.floor(0.92 * Math.PI * half * half * DENSITY); // grains when grown
-			this.half = half;
-			this.image = null;
+		// assets/sandpile.json (the piles: where each is stored, how far it reaches, its numbers)
+		// and assets/sandpile.bin (their cells)
+		static load (file) {
+			if (!stored) {
+				const get = (f) => fetch(file(f)).then((r) => { if (!r.ok) throw new Error(`${f}: ${r.status}`); return r; });
+				stored = Promise.all([get("assets/sandpile.json").then((r) => r.json()), get("assets/sandpile.bin").then((r) => r.arrayBuffer())])
+					.then(([meta, buf]) => ({ ...meta, cells: new Uint8Array(buf) }));
+				stored.catch((e) => { console.error(`sandpile: ${e.message}`); stored = null; }); // try again next showing
+			}
+			return stored;
+		}
+
+		// grains on cell (x, y) of a stored pile, anywhere on the grid
+		static at (growth, pile, x, y) {
+			x = Math.abs(x); y = Math.abs(y);
+			if (y > x) [x, y] = [y, x];
+			if (x > pile.r) return 0;
+			const i = Pile.index(x, y);
+			return (growth.cells[pile.offset + (i >> 2)] >> ((i & 3) << 1)) & 3;
 		}
 
 		step (dt) {
-			this.t += dt;
-		}
-
-		// grains by time t, at a steady rate: the toppling a grain sets off grows with the pile, so
-		// this keeps the work late in the growth within what the Pi can do in time
-		due () {
-			return Math.min(this.full, Math.round((this.full * this.t) / SECONDS));
+			if (this.growth) this.t += dt; // the clock waits for the piles to arrive
 		}
 
 		draw (ctx, w, h) {
-			this.layout(w, h);
-			if (this.t - this.lastUpdate < 1 / UPDATES - 1e-9) return;
-			this.lastUpdate = this.t;
-			const due = this.due();
-			if (due > this.pile.added) this.pile.add(due - this.pile.added);
-			this.paint(ctx, w, h);
-			if (this.pile.added >= this.full) this.resting = true;
+			const g = this.growth;
+			if (!g) return;
+			const k = Math.min(g.piles.length, Math.floor(this.t * g.updates + 1e-9));
+			if (k === this.shown) return;
+			this.shown = k;
+			this.paint(ctx, w, h, g.piles[k - 1]);
+			if (k === g.piles.length) this.resting = true;
 		}
 
-		// the pile's square, a pixel a cell, into an image, then scaled up onto the canvas
-		paint (ctx, w, h) {
-			const r = Math.min(this.half, this.pile.radius + 2), side = 2 * r + 1;
-			if (typeof document === "undefined") return this.painted = side; // tests: nothing to draw on
-			if (!this.image || this.image.width < side) {
-				const c = document.createElement("canvas");
-				c.width = c.height = 2 * this.half + 1;
-				this.image = c;
-				this.pixels = c.getContext("2d").createImageData(c.width, c.height);
+		// the pile a pixel a cell: its eighth unpacked into all eight parts, then put on the canvas
+		paint (ctx, w, h, pile) {
+			if (typeof document === "undefined") return; // tests: nothing to draw on
+			const g = this.growth, o = g.extent, side = 2 * o + 1, r = pile.r, n = 2 * r + 1;
+			if (!this.image) {
+				this.image = new ImageData(side, side);
+				this.px = new Uint32Array(this.image.data.buffer);
+				this.colours = COLOURS.map(([R, G, B]) => ((255 << 24) | (B << 16) | (G << 8) | R) >>> 0);
 			}
-			const px = this.pixels.data, stride = this.pixels.width, o = this.half;
-			for (let y = -r; y <= r; y++) {
-				for (let x = -r; x <= r; x++) {
-					const col = COLOURS[this.pile.at(x, y)], k = 4 * ((y + o) * stride + (x + o));
-					px[k] = col[0]; px[k + 1] = col[1]; px[k + 2] = col[2]; px[k + 3] = 255;
+			const { px, colours } = this, cells = g.cells, at = pile.offset;
+			for (let x = 0, i = 0; x <= r; x++) {
+				const left = o - x, right = o + x, up = (o - x) * side, down = (o + x) * side;
+				for (let y = 0; y <= x; y++, i++) {
+					const c = colours[(cells[at + (i >> 2)] >> ((i & 3) << 1)) & 3];
+					const a = (o - y) * side, b = (o + y) * side;
+					px[a + left] = px[a + right] = px[b + left] = px[b + right] = c;            // (±x, ±y)
+					px[up + o - y] = px[up + o + y] = px[down + o - y] = px[down + o + y] = c; // (±y, ±x)
 				}
 			}
-			this.image.getContext("2d").putImageData(this.pixels, 0, 0, o - r, o - r, side, side);
-			ctx.imageSmoothingEnabled = false;
-			const c = this.cell, cx = Math.round(w / 2 - (c * (2 * o + 1)) / 2), cy = Math.round(h / 2 - (c * (2 * o + 1)) / 2);
-			ctx.drawImage(this.image, o - r, o - r, side, side, cx + c * (o - r), cy + c * (o - r), c * side, c * side);
-			this.painted = side;
+			// a pixel a cell where it fits; scaled down where the canvas is smaller
+			const s = Math.min(1, Math.min(w, h) / side);
+			const X = Math.floor(w / 2 - s * (o + 0.5)), Y = Math.floor(h / 2 - s * (o + 0.5));
+			if (s === 1) return ctx.putImageData(this.image, X, Y, o - r, o - r, n, n);
+			if (!this.canvas) { this.canvas = document.createElement("canvas"); this.canvas.width = this.canvas.height = side; }
+			this.canvas.getContext("2d").putImageData(this.image, 0, 0, o - r, o - r, n, n);
+			ctx.imageSmoothingEnabled = true;
+			ctx.imageSmoothingQuality = "high";
+			ctx.drawImage(this.canvas, o - r, o - r, n, n, X + s * (o - r), Y + s * (o - r), s * n, s * n);
 		}
 
 		readout () {
-			const p = this.pile;
+			const p = this.shown && this.growth.piles[this.shown - 1];
 			if (!p) return "";
-			const { grains, cells } = p.census();
-			return `grains dropped: ${p.added.toLocaleString("en")}    on the pile: ${grains.toLocaleString("en")}    topplings: ${p.topplings.toLocaleString("en")}\n` +
-				`cells reached: ${cells.toLocaleString("en")}, ${p.radius} from the middle    grains per cell: ${cells ? (grains / cells).toFixed(3) : "–"}`;
+			const f = (v) => v.toLocaleString("en");
+			return `grains dropped: ${f(p.grains)}    on the pile: ${f(p.onPile)}    topplings: ${f(p.topplings)}\n` +
+				`cells reached: ${f(p.cells)}, ${p.r} from the middle    grains per cell: ${(p.onPile / p.cells).toFixed(3)}`;
 		}
 	}
 
@@ -204,13 +218,15 @@
 		title: "The sandpile",
 		subtitle: "grains dropped on one cell; any cell with four topples, one to each neighbour",
 		equations: [
-			"<i>h</i>(<i>x</i>) ≥ 4 &nbsp;⟹&nbsp; <i>h</i>(<i>x</i>) −= 4, &nbsp; <i>h</i>(<i>y</i>) += 1 for each neighbour <i>y</i> &nbsp; <span class=\"chaos-note\">(black: no grains; gold 1, teal 2, blue 3)</span>",
+			"<i>h</i>(<i>x</i>) ≥ 4 &nbsp;⟹&nbsp; <i>h</i>(<i>x</i>) −= 4, &nbsp; <i>h</i>(<i>y</i>) += 1 for each neighbour <i>y</i> &nbsp; <span class=\"chaos-note\">(black: no grains; gold 1, rose 2, indigo 3)</span>",
 			"<span class=\"chaos-note\">Per Bak, Chao Tang and Kurt Wiesenfeld made this model in 1987 of how a system can organise itself to the brink of avalanches of every size. Deepak Dhar showed in 1990 that the order of toppling never matters, which is why the pile has the square's symmetry exactly. Nobody has a formula for the pattern: Wesley Pegden and Charles Smart proved in 2013 that it tends to a definite limit as the pile grows, and in 2016, with Lionel Levine, traced its patches to the circles of an Apollonian packing.</span>"
 		]
 	};
 	Sandpile.Pile = Pile;
 	Sandpile.COLOURS = COLOURS;
+	Sandpile.GRAINS = GRAINS;
 	Sandpile.SECONDS = SECONDS;
+	Sandpile.UPDATES = UPDATES;
 
 	root.ChaosSimulations = root.ChaosSimulations || {};
 	root.ChaosSimulations.sandpile = Sandpile;

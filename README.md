@@ -17,7 +17,7 @@ physically correct simulations, one at a time, each with its equations and live 
 | `rule30` | **Rule 30.** A row of cells, each new row made from the last by one rule, drawn a row at a time from a single cell: regular on the left, random on the right. The readout keeps the centre column's latest bits and how often it has been 1. |
 | `standardMap` | **The standard map.** Chirikov's kicked rotor, orbit by orbit as dots: closed curves and chains of islands where it is regular, grey dust where it is chaotic. Each showing a different kick strength, among them K = 0.9716, where the last barrier from side to side breaks. |
 | `waterwheel` | **The chaotic waterwheel.** Malkus's wheel of leaking cups under a spray, turning one way, then the other, never settling; its equations are exactly Lorenz's, and beside it the butterfly they trace, blue while it turns anticlockwise, orange clockwise. |
-| `sandpile` | **The sandpile.** Grains dropped on one cell, any cell with four toppling one onto each neighbour: avalanches of every size leave a fractal with the square's exact symmetry. |
+| `sandpile` | **The sandpile.** Grains dropped on one cell, any cell with four toppling one onto each neighbour: avalanches of every size leave a fractal with the square's exact symmetry, 1,250,000 grains, a pixel a cell (grown ahead of time, exactly, and played back). |
 
 A new simulation starts every `cycleSeconds`, and each time the module is shown again.
 
@@ -87,7 +87,6 @@ that page's config. Their options are unchanged.
 | `pendulumStyle` | `"live"` | `"exposure"`: only the bobs' light trails, building up like a long-exposure photo of LED-tipped pendulums. About half the CPU on a Pi |
 | `threeBodyScene` | taking turns | `threeBody`: always this one: `"pythagorean"`, `"lagrange"` or `"figure-eight"` |
 | `standardMapK` | taking turns | `standardMap`: always this kick strength, e.g. `0.971635` (otherwise 0.5, 0.9716, 1.3 and 2.4 in turn) |
-| `sandpileCell` | `4` | `sandpile`: pixels per cell. 3 for finer detail, at three times the toppling (see [Performance](#performance)) |
 | `turns` | `null` | Share a page with other modules, taking turns: see [Taking turns](#taking-turns) |
 | `statsPanel` | `false` | A line under the math showing what the mirror spends: fps, CPU of Electron and the compositor, a bar per core, temperature, and the simulation cycle. Sampled by the module's `node_helper` from `/proc`, only while the module is shown |
 | `debugStats` | `false` | Show achieved fps and per-frame timings in the corner of the screen |
@@ -137,7 +136,7 @@ as CPU of the Electron processes plus the `cage` compositor over 60 s, in % of o
 | `rule30`, the same | 28 | 20 |
 | `standardMap`, over a 45 s showing (as MMM-StandardMap) | 31 | |
 | `waterwheel`, the same (as MMM-ChaoticWaterwheel) | 71 | |
-| `sandpile`, the same (as MMM-Sandpile) | 45 | |
+| `sandpile`, the same (as MMM-Sandpile) | 43 | 20 |
 | `lorenzStyle: "exposure"` | 55 | 20+ |
 | `pendulumStyle: "exposure"` | 66 | 20+ |
 | *v0.1.0 single pendulum, 30 fps, for comparison* | *140 + cage* | |
@@ -160,11 +159,17 @@ What costs what, from micro-benchmarks on the Pi (`dev/bench.js`):
 Of the three newest (measured as modules of their own, the same code, over 45 s pages),
 `standardMap` adds a whole orbit (a full-canvas change) only three times a second and rests
 after 42 s; `waterwheel`'s frames take turns between the wheel's box and the butterfly's newest
-stretch, and it never rests; `sandpile` repaints the pile four times a second, and its toppling,
-timed on the Pi, is 3.5 s of CPU over its 42 s at 4 px cells (11.7 s at 3 px).
+stretch, and it never rests; `sandpile` puts the next pile on the canvas four times a second,
+and rests after 42 s.
 
 The fractal basin maps are rendered ahead of time (`node tools/render-basins.js`, ~2 min on
 a Mac): at ~3.5 ms per pixel, a Pi 3 would need 47 minutes of CPU for one.
+
+The sandpile is grown ahead of time too (`node tools/render-sandpile.js`, under a minute on a
+Mac): its 1,250,000 grains topple 27 billion times, a quarter of an hour on a Pi. The 168 piles
+on the way are stored in `assets/sandpile.bin` (1.8 MB, an eighth of each, two bits a cell),
+and unpacking one into the canvas takes the Pi 10 ms at most. The 4 px pile it replaced was
+computed live, 3.5 s of toppling over its 42 s, and cost more: 51% of a core over its page.
 
 ## Development
 
@@ -172,6 +177,7 @@ a Mac): at ~3.5 ms per pixel, a Pi 3 would need 47 minutes of CPU for one.
 node --test                  # physics checks, no dependencies
 node dev/serve.js            # then open http://localhost:8765/dev/preview.html
 node tools/render-basins.js  # re-render assets/basins-*.png after changing the magnetic pendulum
+node tools/render-sandpile.js  # grow the sandpile again into assets/sandpile.* (under a minute)
 ```
 
 The tests check the physics against known results rather than looks: energy conservation,

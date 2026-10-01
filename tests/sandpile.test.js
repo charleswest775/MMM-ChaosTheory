@@ -1,9 +1,11 @@
 // Checks for the sandpile: that the eighth computed is the whole grid's pile, cell for cell,
-// that the order of toppling doesn't matter, that no grain is lost, and that the page stays
-// within its time.
+// that the order of toppling doesn't matter, that no grain is lost, that the stored growth the
+// page plays is that pile, and that the page stays within its time.
 // Run: node --test
 const test = require("node:test");
 const assert = require("node:assert");
+const fs = require("node:fs");
+const path = require("node:path");
 const { Sandpile } = require("../simulations/sandpile.js");
 const { Pile } = Sandpile;
 
@@ -50,17 +52,52 @@ test("every cell ends with fewer than four grains, and no grain is lost", () => 
 	assert.strictEqual(p.census().grains, 20000);
 });
 
-test("the page grows its pile in 42 s, never reaching the edge, then rests", () => {
-	const s = new Sandpile();
+// the stored growth, as the page loads it
+const dir = path.join(__dirname, "..", "assets");
+const growth = { ...JSON.parse(fs.readFileSync(path.join(dir, "sandpile.json"))), cells: new Uint8Array(fs.readFileSync(path.join(dir, "sandpile.bin"))) };
+
+test("the stored growth is the pile, cell for cell, as it grows", () => {
+	const p = new Pile(200);
+	for (const stored of growth.piles.filter((s) => s.grains < 150000)) {
+		p.add(stored.grains - p.added);
+		const { grains, cells } = p.census();
+		assert.deepStrictEqual(stored, { offset: stored.offset, r: p.radius, grains: p.added, onPile: grains, topplings: p.topplings, cells });
+		for (let y = -stored.r - 1; y <= stored.r + 1; y++) {
+			for (let x = -stored.r - 1; x <= stored.r + 1; x++) assert.strictEqual(Sandpile.at(growth, stored, x, y), p.at(x, y), `${stored.grains} grains, (${x}, ${y})`);
+		}
+	}
+});
+
+test("every stored pile holds all its grains, dropped at a steady rate, and fits on the canvas", () => {
+	const { piles } = growth, steps = Sandpile.SECONDS * Sandpile.UPDATES;
+	assert.strictEqual(piles.length, steps);
+	assert.strictEqual(piles.at(-1).grains, Sandpile.GRAINS);
+	let end = 0, r = 0;
+	piles.forEach((s, k) => {
+		assert.strictEqual(s.grains, Math.round((Sandpile.GRAINS * (k + 1)) / steps));
+		assert.strictEqual(s.offset, end);
+		end += Math.ceil((Pile.index(s.r, s.r) + 1) / 4);
+		assert.ok(s.r >= r); r = s.r; // a pile never shrinks
+		let grains = 0;
+		for (let x = 0; x <= s.r; x++) for (let y = 0; y <= x; y++) grains += Sandpile.at(growth, s, x, y) * Pile.copies(x, y);
+		assert.strictEqual(grains, s.grains, `pile ${k + 1}`);
+		assert.strictEqual(s.onPile, s.grains);
+	});
+	assert.strictEqual(end, growth.cells.length);
+	assert.strictEqual(growth.extent, r);
+	assert.ok(2 * r + 1 <= 900);
+});
+
+test("the page plays the growth in 42 s, four piles a second, then rests", () => {
+	const s = new Sandpile({ growth });
 	const ctx = new Proxy({}, { get: () => () => {}, set: () => true });
 	let frames = 0, updates = 0, last = 0;
 	while (!s.resting && frames < 2000) {
 		s.step(1 / 20); s.draw(ctx, 900, 900); frames++;
-		if (s.pile.added !== last) { updates++; last = s.pile.added; }
+		if (s.shown !== last) { updates++; last = s.shown; }
 	}
-	assert.ok(frames / 20 <= Sandpile.SECONDS + 0.5, `${frames / 20} s`);
-	assert.ok(updates <= 4 * Sandpile.SECONDS + 2);
-	assert.strictEqual(s.pile.census().grains, s.pile.added); // none fell off
-	assert.ok(s.pile.radius < s.pile.half - 2);
+	assert.ok(Math.abs(frames / 20 - Sandpile.SECONDS) < 0.1, `${frames / 20} s`);
+	assert.strictEqual(updates, Sandpile.SECONDS * Sandpile.UPDATES);
+	assert.match(s.readout(), /grains dropped: 1,250,000 {4}on the pile: 1,250,000/);
 	assert.ok(!/NaN|undefined/.test(s.readout()));
 });
