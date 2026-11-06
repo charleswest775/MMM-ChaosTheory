@@ -99,7 +99,10 @@ MMM-ChaosTheory itself is not in the mirror's config since 2026-09-28.
   Wayland kiosk.
 - **No GPU acceleration, and it can't be enabled**: the Pi 3's VideoCore IV only does GLES 2.0,
   Chromium needs ES 3.0 (tested). All canvas drawing is CPU. **No WebGL / three.js.**
-- Screen will be **portrait 1200×1920** once mounted (Dell U2413, rotated). Design for portrait.
+- Screen: **portrait 1080×1920** since 2026-11-05 (ASUS VG245, rotated; not the Dell U2413
+  planned before). On the mirror each page's canvas is 960 wide, the clock and weather's span,
+  from just under them, with the caption at the foot of the screen in larger type: set in the
+  setup repo (`config.js` sizes, `custom.css` layout), not in the modules.
 - Electron baseline is ~0.5% of one core. A full-screen 60 fps canvas could cost a lot more.
   **Measure, don't guess**: on the Pi, `~/.cache/mm-sample.sh 60` prints Electron CPU% and RSS
   over 60 s. Record before/after numbers in the README.
